@@ -1,40 +1,33 @@
 const express = require('express');
-const bodyParser = require('body-parser');
+const cors = require('cors');
 const sgMail = require('@sendgrid/mail');
-require('dotenv').config();  // Load .env file
-
-const app = express();
-const port = process.env.PORT || 3000;
-
-// Middleware to parse JSON bodies
-app.use(bodyParser.json());
-
-console.log('SENDGRID_API_KEY:', process.env.SENDGRID_API_KEY);  // Verify API key is loaded
-
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-app.post('/send-email', (req, res) => {
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+app.post('/send-email', async (req, res) => {
     const { name, email, message } = req.body;
 
     const msg = {
-        to: 'spc.cody.hunter@gmail.com', // Your email address
-        from: 'spc.cody.hunter@gmail.com', // Your verified sender email address
-        subject: 'New Contact Form Submission',
-        text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`
+        to: 'spc.cody.hunter@gmail.com',
+        from: 'spc.cody.hunter@gmail.com',
+        subject: `New message from ${name}`,
+        text: message,
+        html: `<strong>${message}</strong>`,
     };
 
-    sgMail.send(msg)
-        .then(() => {
-            res.status(200).json({ message: 'Email sent successfully' });
-        })
-        .catch((error) => {
-            console.error(error);
-            res.status(500).json({ message: 'Failed to send email' });
-        });
+    try {
+        await sgMail.send(msg);
+        res.status(200).send({ message: 'Email sent successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ error: 'Error sending email' });
+    }
 });
 
-app.use(express.static('public'));
-
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
